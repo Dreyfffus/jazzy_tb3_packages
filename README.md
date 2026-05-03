@@ -40,6 +40,22 @@ To build the packages do the following:
  cd src/thermocator && colcon build #or 
  colcon build --packages-select thermocator
 ```
+> [!NOTE]
+> If you want to also fetch the headers from build to use inside your editor then you have to do this:
+```bash
+# this exports compile_commands.json to /build folder of the package for import
+colcon build [--packages-select thermocator] --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+```
+> This creates a file called `compile_commands.json` somewhere in you build, which is symlinked here.
+> If you are using an LSP (***NeoVim***), you need to set up your `.clangd` file that is read for autocompletes
+```yaml
+CompileFlags:
+  CompilationDatabase: /home/c2irr10/turtlebot3_ws/build/thermocator
+  Add:
+    - "-I/home/c2irr10/turtlebot3_ws/src/thermocator/include"
+PathMappings:
+  - "/ws/:/home/c2irr10/turtlebot3_ws/"
+```
 ## Running any package
 
 To run any package you source a `*.launch.py` and run the following :
@@ -110,3 +126,38 @@ ros2 launch turtlebot3_cartographer cartographer.launch.py use_sim_time:=true
  - Add the TurtleBot3 Model : **Add** > `RobotModel` > **topic** > `/robot_description`
  - Add the SLAM map : **Add** > `Map` > **topic** > `/map`
  - Add the thermal layer :  **Add** > **By Display Type** > scroll to `thermocator` > **ThermalDisplay** > set topic to `/thermal_map`
+
+ >[!TIP]
+ > You can greatly speed up the setup by using the `tb3.bash` script. It has multiple functionalities for attaching, starting and
+ > running from outside the container useful startup commands.
+```bash
+# Start the container
+./tb3.bash start
+
+# Attach a new terminal to the running container
+./tb3.bash attach
+
+# Launch the Gazebo simulation
+./tb3.bash remote sim
+
+# Launch Cartographer SLAM + RViz2
+./tb3.bash remote rviz
+
+# Launch Nav2 with thermal params
+./tb3.bash remote nav
+
+# Run the thermal map builder
+./tb3.bash remote thermal
+
+# Run the fake sensor broadcaster
+./tb3.bash remote broadcaster
+
+# Teleop keyboard
+./tb3.bash remote teleop
+
+# Build everything
+./tb3.bash remote build
+
+# Build one package
+./tb3.bash remote build thermocator
+```

@@ -23,6 +23,7 @@ find_package(rviz_rendering REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rviz_ogre_vendor REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
+find_package(nav2_costmap_2d REQUIRED)
 
 # ── Shared dependency list ────────────────────────────────────────────────────
 set(THERMOCATOR_DEPS
@@ -63,6 +64,25 @@ target_include_directories(thermal_broadcaster PUBLIC
 target_compile_features(thermal_broadcaster PUBLIC cxx_std_17)
 
 # ── thermocator_display — RViz2 plugin shared library ─────────────────────────
+add_library(thermocator_layer SHARED
+    src/thermal_layer.cpp
+    include/thermocator/thermal_layer.hpp
+)
+ament_target_dependencies(thermocator_layer
+    ${THERMOCATOR_DEPS}
+    nav2_costmap_2d
+    pluginlib
+)
+target_include_directories(thermocator_layer PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+)
+target_compile_features(thermocator_layer PUBLIC cxx_std_17)
+
+pluginlib_export_plugin_description_file(
+    nav2_costmap_2d plugin_description.xml
+)
+
 add_library(thermocator_display SHARED
   src/thermal_display.cpp
   include/thermocator/thermal_display.hpp
@@ -97,6 +117,7 @@ pluginlib_export_plugin_description_file(
 install(TARGETS
   thermocator
   thermocator_display
+  thermocator_layer
   thermal_broadcaster
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -112,6 +133,11 @@ install(
 # ── Install plugin description ────────────────────────────────────────────────
 install(FILES plugin_description.xml
   DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+    DIRECTORY config/
+    DESTINATION share/${PROJECT_NAME}/config
 )
 
 # ── Testing ───────────────────────────────────────────────────────────────────

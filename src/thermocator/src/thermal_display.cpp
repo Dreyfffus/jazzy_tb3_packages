@@ -18,36 +18,37 @@ namespace thermocator {
 ThermalDisplay::ThermalDisplay() {
     // Properties are parented to `this` — the property panel in RViz2 owns them
     // SLOT macros fire when the user edits the value in the panel
-    alpha_property_ = new rviz_common::properties::FloatProperty(
+    _alpha_property = new rviz_common::properties::FloatProperty(
         "Alpha", 0.7f,
         "Transparency of the thermal overlay",
         this, SLOT(onAlphaChanged()));
-    alpha_property_->setMin(0.0f);
-    alpha_property_->setMax(1.0f);
+    _alpha_property->setMin(0.0f);
+    _alpha_property->setMax(1.0f);
 
-    cold_color_property_ = new rviz_common::properties::ColorProperty(
+    _cold_color_property = new rviz_common::properties::ColorProperty(
         "Cold Color", QColor(0, 0, 255),
         "Color mapped to minimum temperature (value = 0)",
         this, SLOT(onColorsChanged()));
 
-    hot_color_property_ = new rviz_common::properties::ColorProperty(
+    _hot_color_property = new rviz_common::properties::ColorProperty(
         "Hot Color", QColor(255, 0, 0),
         "Color mapped to maximum temperature (value = 100)",
         this, SLOT(onColorsChanged()));
-    topic_property_->setValue("/thermal_map");
 }
 
 ThermalDisplay::~ThermalDisplay() {
     if (initialized()) {
-        scene_manager_->destroyManualObject(manual_object_);
-        child_node_->getParentSceneNode()->removeAndDestroyChild(child_node_);
+        scene_manager_->destroyManualObject(_manual_object);
+        _child_node->getParentSceneNode()->removeAndDestroyChild(_child_node);
 
-        if (!texture_) {
-            Ogre::TextureManager::getSingleton().remove(texture_->getHandle());
+        if (!_texture) {
+            Ogre::TextureManager::getSingleton().remove(_texture->getHandle());
         }
-        if (!material_) {
-            Ogre::MaterialManager::getSingleton().remove(material_->getHandle());
+        if (!_material) {
+            Ogre::MaterialManager::getSingleton().remove(_material->getHandle());
         }
+
+        Ogre::ResourceGroupManager::getSingleton().destroyResourceGroup(_resource_group_name);
     }
 }
 
@@ -56,46 +57,45 @@ ThermalDisplay::~ThermalDisplay() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 void ThermalDisplay::onInitialize() {
-    // Must call base first — sets up scene_node_, scene_manager_, context_
     MessageFilterDisplay::onInitialize();
 
-    // Create a child scene node so we can move it independently
-    child_node_ = scene_node_->createChildSceneNode();
+    qos_profile = rclcpp::QoS(1).transient_local().reliable();
 
-    // Unique name per instance — multiple displays can coexist in one RViz2 session
+    topic_property_->setValue("/thermal_map");
+
     static int instance_count = 0;
-    const std::string base_name =
-        "ThermalDisplay_" + std::to_string(instance_count++);
 
-    // ── Ogre ManualObject — will hold a single textured quad ─────────────────
-    manual_object_ = scene_manager_->createManualObject(base_name + "_obj");
-    manual_object_->setDynamic(true);
-    child_node_->attachObject(manual_object_);
+    // ── Create isolated resource group ────────────────────────────────────
+    _resource_group_name = _base_name + "_group";
+    Ogre::ResourceGroupManager::getSingleton().createResourceGroup(
+        _resource_group_name);
 
-    // ── Material ──────────────────────────────────────────────────────────────
-    material_ = Ogre::MaterialManager::getSingleton().create(
-        base_name + "_mat",
-        Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+    _child_node = scene_node_->createChildSceneNode();
 
-    material_->setReceiveShadows(false);
+    _manual_object = scene_manager_->createManualObject(_base_name + "_obj");
+    _manual_object->setDynamic(true);
+    _child_node->attachObject(_manual_object);
 
-    auto *technique = material_->getTechnique(0);
+    // ── Material in isolated group ────────────────────────────────────────
+    _material = Ogre::MaterialManager::getSingleton().create(
+        _base_name + "_mat",
+        _resource_group_name); // ← not DEFAULT_RESOURCE_GROUP_NAME
+
+    _material->setReceiveShadows(false);
+    auto *technique = _material->getTechnique(0);
     technique->setLightingEnabled(false);
-
     auto *pass = technique->getPass(0);
     pass->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
     pass->setDepthWriteEnabled(false);
-
-    // Texture unit — will be bound to the texture when first message arrives
     pass->createTextureUnitState();
     pass->getTextureUnitState(0)->setTextureFiltering(Ogre::TFO_NONE);
 }
 
 void ThermalDisplay::reset() {
     MessageFilterDisplay::reset();
-    manual_object_->clear();
-    last_width_ = 0;
-    last_height_ = 0;
+    _manual_object->clear();
+    _last_width = 0;
+    _last_height = 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -135,21 +135,21 @@ void ThermalDisplay::processMessage(
 
     // ── Rebuild geometry only if grid dimensions changed ─────────────────────
     const bool dims_changed =
-        msg->info.width != last_width_ ||
-        msg->info.height != last_height_;
+        msg->info.width != _last_width ||
+        msg->info.height != _last_height;
 
     if (dims_changed) {
         updatePlane(*msg);
-        last_width_ = msg->info.width;
-        last_height_ = msg->info.height;
+        _last_width = msg->info.width;
+        _last_height = msg->info.height;
     }
 
     // ── Always update texture — new data every message ────────────────────────
     updateTexture(*msg);
 
     // ── Place geometry at the grid origin in the scene ────────────────────────
-    child_node_->setPosition(position);
-    child_node_->setOrientation(orientation);
+    _child_node->setPosition(position);
+    _child_node->setOrientation(orientation);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -161,29 +161,28 @@ void ThermalDisplay::updateTexture(const nav_msgs::msg::OccupancyGrid &grid) {
     const uint32_t h = grid.info.height;
 
     // ── Create or recreate texture when dimensions change ────────────────────
-    if (texture_ ||
-        texture_->getWidth() != w ||
-        texture_->getHeight() != h) {
-        if (!texture_) {
-            Ogre::TextureManager::getSingleton().remove(texture_->getHandle());
+    if (_texture ||
+        _texture->getWidth() != w ||
+        _texture->getHeight() != h) {
+        if (!_texture) {
+            Ogre::TextureManager::getSingleton().remove(_texture->getHandle());
         }
 
-        texture_ = Ogre::TextureManager::getSingleton().createManual(
-            "ThermalTexture_" + std::to_string(w) + "x" + std::to_string(h),
-            Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
+        _texture = Ogre::TextureManager::getSingleton().createManual(
+            _base_name + "_tex",
+            _resource_group_name, // ← use isolated group
             Ogre::TEX_TYPE_2D,
-            w, h,
-            0, // no mipmaps — we want exact pixel values
+            w, h, 0,
             Ogre::PF_BYTE_RGBA,
             Ogre::TU_DYNAMIC_WRITE_ONLY_DISCARDABLE);
 
-        material_->getTechnique(0)->getPass(0)->getTextureUnitState(0)->setTextureName(texture_->getName());
+        _material->getTechnique(0)->getPass(0)->getTextureUnitState(0)->setTextureName(_texture->getName());
     }
 
     // ── Read current property values ──────────────────────────────────────────
-    const float alpha = alpha_property_->getFloat();
-    const QColor cold = cold_color_property_->getColor();
-    const QColor hot = hot_color_property_->getColor();
+    const float alpha = _alpha_property->getFloat();
+    const QColor cold = _cold_color_property->getColor();
+    const QColor hot = _hot_color_property->getColor();
     const uint8_t a = static_cast<uint8_t>(alpha * 255.0f);
 
     // Precompute color channel deltas for the lerp
@@ -192,7 +191,7 @@ void ThermalDisplay::updateTexture(const nav_msgs::msg::OccupancyGrid &grid) {
     const float db = static_cast<float>(hot.blue() - cold.blue());
 
     // ── Lock pixel buffer and fill ────────────────────────────────────────────
-    Ogre::HardwarePixelBufferSharedPtr pixel_buffer = texture_->getBuffer();
+    Ogre::HardwarePixelBufferSharedPtr pixel_buffer = _texture->getBuffer();
     pixel_buffer->lock(Ogre::HardwareBuffer::HBL_DISCARD);
 
     uint8_t *data =
@@ -242,9 +241,9 @@ void ThermalDisplay::updatePlane(const nav_msgs::msg::OccupancyGrid &grid) {
     const float w = static_cast<float>(grid.info.width) * grid.info.resolution;
     const float h = static_cast<float>(grid.info.height) * grid.info.resolution;
 
-    manual_object_->clear();
-    manual_object_->begin(
-        material_->getName(),
+    _manual_object->clear();
+    _manual_object->begin(
+        _material->getName(),
         Ogre::RenderOperation::OT_TRIANGLE_LIST);
 
     // Single quad covering the full grid extent
@@ -255,19 +254,19 @@ void ThermalDisplay::updatePlane(const nav_msgs::msg::OccupancyGrid &grid) {
     //  │  (grid)  │
     //  0 ──────── 1
     //
-    manual_object_->position(0.0f, 0.0f, 0.0f);
-    manual_object_->textureCoord(0.0f, 1.0f);
-    manual_object_->position(w, 0.0f, 0.0f);
-    manual_object_->textureCoord(1.0f, 1.0f);
-    manual_object_->position(w, h, 0.0f);
-    manual_object_->textureCoord(1.0f, 0.0f);
-    manual_object_->position(0.0f, h, 0.0f);
-    manual_object_->textureCoord(0.0f, 0.0f);
+    _manual_object->position(0.0f, 0.0f, 0.0f);
+    _manual_object->textureCoord(0.0f, 1.0f);
+    _manual_object->position(w, 0.0f, 0.0f);
+    _manual_object->textureCoord(1.0f, 1.0f);
+    _manual_object->position(w, h, 0.0f);
+    _manual_object->textureCoord(1.0f, 0.0f);
+    _manual_object->position(0.0f, h, 0.0f);
+    _manual_object->textureCoord(0.0f, 0.0f);
 
-    manual_object_->triangle(0, 1, 2);
-    manual_object_->triangle(0, 2, 3);
+    _manual_object->triangle(0, 1, 2);
+    _manual_object->triangle(0, 2, 3);
 
-    manual_object_->end();
+    _manual_object->end();
 };
 } // namespace thermocator
 // ── pluginlib registration ────────────────────────────────────────────────────

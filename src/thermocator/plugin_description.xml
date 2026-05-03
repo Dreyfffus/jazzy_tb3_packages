@@ -10,3 +10,15 @@
     </description>
   </class>
 </library>
+<library path="thermocator_layer">
+  <class
+    name="thermocator/ThermalLayer"
+    type="thermocator::ThermalLayer"
+    base_class_type="nav2_costmap_2d::Layer">
+    <description>
+      Applies thermal heat map data as cost values in the Nav2 costmap.
+      High temperature zones receive lethal or inflated costs.
+      Subscribes to a nav_msgs/OccupancyGrid published by ThermalMapBuilder.
+    </description>
+  </class>
+</library>
