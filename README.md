@@ -18,7 +18,7 @@ or you can source the included pdf file SETUP.pdf
 ## Package build instructions
 
 To build the packages do the following:
-
+>[!IMPORTANT]
 > Do this to start the docker containing the full jazzy installation:
 
 ```bash
@@ -26,7 +26,7 @@ To build the packages do the following:
     /tmp/.X11-unix:/tmp/.X11-unix -v /home/c2irr10/turtlebot3_ws:/ws turtlebot3_ws bash
 ```
 
-> After this step, you can use the scripts linked through the docker working directory or run :
+> After this step, you can run :
 
 ```bash
 # Installs the specified dependencies of packages
@@ -84,7 +84,7 @@ The package has ***2*** nodes :
  
  - `thermocator` is the map building node. It takes in sensor data from **`/thermal_reading`** and publishes to **`/thermal_map`**
  - `thermal_boradcaster` is the mock-sensor input node. It publishes random temperature data to **`/thermal_reading`** and subscribes to it for debug callbacks
-
+>[!IMPORTANT]
 > To run these nodes properly, the following commands need to be in order.
 ```bash
 # Terminal 1 - run the world file.
