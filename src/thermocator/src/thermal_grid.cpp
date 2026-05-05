@@ -5,7 +5,7 @@
 #include <optional>
 #include <stdint.h>
 #include <vector>
-
+namespace thermocator {
 void ThermalGrid::Initialize(const nav_msgs::msg::OccupancyGrid &map) {
     _info = map.info;
     _resolution = map.info.resolution;
@@ -136,3 +136,4 @@ bool ThermalGrid::IsVisited(double world_x, double world_y) {
     const int coord_col = coord->second;
     return _visited[static_cast<size_t>(coord_row) * _width + static_cast<size_t>(coord_col)];
 }
+} // namespace thermocator

@@ -5,7 +5,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# ── Dependencies ──────────────────────────────────────────────────────────────
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
@@ -17,26 +16,40 @@ find_package(std_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
-# RViz2 plugin dependencies
 find_package(rviz_common REQUIRED)
 find_package(rviz_rendering REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rviz_ogre_vendor REQUIRED)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
+find_package(nav2_costmap_2d REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(nav2_msgs REQUIRED)
 
-# ── Shared dependency list ────────────────────────────────────────────────────
 set(THERMOCATOR_DEPS
   rclcpp
+  rclcpp_action
   tf2
   tf2_ros
   tf2_geometry_msgs
   nav_msgs
+  nav2_msgs
   sensor_msgs
   std_msgs
   builtin_interfaces
   geometry_msgs
 )
 
-# ── thermocator — MapBuilder + OneShotListener + main ─────────────────────────
+add_executable(decision_node
+    src/decision_node.cpp
+)
+
+ament_target_dependencies(decision_node ${THERMOCATOR_DEPS})
+target_include_directories(decision_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+)
+target_compile_features(decision_node PUBLIC cxx_std_17)
+
 add_executable(thermocator
   src/thermocator.cpp
   src/map_builder.cpp
@@ -49,7 +62,6 @@ target_include_directories(thermocator PUBLIC
 )
 target_compile_features(thermocator PUBLIC cxx_std_17)
 
-# ── thermal_broadcaster — simulated sensor publisher ──────────────────────────
 
 add_executable(thermal_broadcaster
    src/thermal_broadcaster.cpp
@@ -61,9 +73,28 @@ target_include_directories(thermal_broadcaster PUBLIC
 )
 target_compile_features(thermal_broadcaster PUBLIC cxx_std_17)
 
-# ── thermocator_display — RViz2 plugin shared library ─────────────────────────
+add_library(thermocator_layer SHARED
+    src/thermal_layer.cpp
+    include/thermocator/thermal_layer.hpp
+)
+ament_target_dependencies(thermocator_layer
+    ${THERMOCATOR_DEPS}
+    nav2_costmap_2d
+    pluginlib
+)
+target_include_directories(thermocator_layer PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+)
+target_compile_features(thermocator_layer PUBLIC cxx_std_17)
+
+pluginlib_export_plugin_description_file(
+    nav2_costmap_2d plugin_description.xml
+)
+
 add_library(thermocator_display SHARED
   src/thermal_display.cpp
+  include/thermocator/thermal_display.hpp
 )
 ament_target_dependencies(thermocator_display
   ${THERMOCATOR_DEPS}
@@ -79,6 +110,11 @@ target_include_directories(thermocator_display BEFORE PUBLIC
 )
 target_compile_features(thermocator_display PUBLIC cxx_std_17)
 
+target_link_libraries(thermocator_display
+    Qt5::Core
+    Qt5::Widgets
+)
+
 # Required for Qt MOC — RViz2 plugins use Qt signals/slots
 set_property(TARGET thermocator_display PROPERTY AUTOMOC ON)
 
@@ -86,28 +122,37 @@ set_property(TARGET thermocator_display PROPERTY AUTOMOC ON)
 pluginlib_export_plugin_description_file(
   rviz_common plugin_description.xml)
 
-# ── Install targets ───────────────────────────────────────────────────────────
 install(TARGETS
   thermocator
   thermocator_display
+  thermocator_layer
   thermal_broadcaster
+  decision_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
-# ── Install headers ───────────────────────────────────────────────────────────
 install(
   DIRECTORY include/
   DESTINATION include
 )
 
-# ── Install plugin description ────────────────────────────────────────────────
-install(FILES plugin_description.xml
-  DESTINATION share/${PROJECT_NAME}
+install(
+    FILES plugin_description.xml
+    DESTINATION share/${PROJECT_NAME}
 )
 
-# ── Testing ───────────────────────────────────────────────────────────────────
+install(
+    DIRECTORY config/
+    DESTINATION share/${PROJECT_NAME}/config
+)
+
+install(
+    DIRECTORY launch/
+    DESTINATION share/${PROJECT_NAME}/launch
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

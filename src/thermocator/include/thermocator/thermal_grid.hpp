@@ -4,6 +4,8 @@
 #include <optional>
 #include <vector>
 
+namespace thermocator {
+
 class ThermalGrid final {
 
   public:
@@ -42,3 +44,4 @@ class ThermalGrid final {
     std::vector<float> _confidence;
     std::vector<bool> _visited;
 };
+} // namespace thermocator

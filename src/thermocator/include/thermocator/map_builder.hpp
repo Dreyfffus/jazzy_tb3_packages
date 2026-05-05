@@ -14,6 +14,8 @@
 
 #include "thermocator/thermal_grid.hpp"
 
+namespace thermocator {
+
 class ThermalMapBuilder : public rclcpp::Node {
   public:
     explicit ThermalMapBuilder(std::shared_ptr<ThermalGrid> grid)
@@ -26,6 +28,7 @@ class ThermalMapBuilder : public rclcpp::Node {
         declare_parameter("min_confidence", 0.5);
         declare_parameter("publish_rate", 1.0); // Hz
         declare_parameter("tf_timeout", 0.1);   // Sec
+        set_parameter(rclcpp::Parameter("use_sim_time", true));
 
         _map_frame = get_parameter("map_frame").as_string();
         _robot_frame = get_parameter("robot_frame").as_string();
@@ -75,3 +78,4 @@ class ThermalMapBuilder : public rclcpp::Node {
     float _min_conf;
     double _tf_timeout;
 };
+} // namespace thermocator

@@ -25,7 +25,7 @@ class ThermalDisplay : public rviz_common::MessageFilterDisplay<nav_msgs::msg::O
 
   protected:
     void onInitialize() override;
-    void reset() override;
+    void reset() override; // In header
 
   private Q_SLOTS:
     // Called by property system when user changes values in the RViz2 panel
@@ -43,19 +43,21 @@ class ThermalDisplay : public rviz_common::MessageFilterDisplay<nav_msgs::msg::O
     void updatePlane(const nav_msgs::msg::OccupancyGrid &grid);
 
     // ── Ogre objects ────────────────────────────────────────────────────────
-    Ogre::SceneNode *child_node_ = nullptr;
-    Ogre::ManualObject *manual_object_ = nullptr;
-    Ogre::TexturePtr texture_;
-    Ogre::MaterialPtr material_;
+    Ogre::SceneNode *_child_node = nullptr;
+    Ogre::ManualObject *_manual_object = nullptr;
+    Ogre::TexturePtr _texture;
+    Ogre::MaterialPtr _material;
 
     // Track last dimensions so we only rebuild geometry when needed
-    uint32_t last_width_ = 0;
-    uint32_t last_height_ = 0;
+    uint32_t _last_width = 0;
+    uint32_t _last_height = 0;
 
-    // ── RViz2 properties (owned by property system, not by us) ───────────────
-    rviz_common::properties::FloatProperty *alpha_property_;
-    rviz_common::properties::ColorProperty *cold_color_property_;
-    rviz_common::properties::ColorProperty *hot_color_property_;
+    //  RViz2 properties
+    rviz_common::properties::FloatProperty *_alpha_property;
+    rviz_common::properties::ColorProperty *_cold_color_property;
+    rviz_common::properties::ColorProperty *_hot_color_property;
+    std::string _resource_group_name;
+    std::string _base_name;
 };
 
 } // namespace thermocator

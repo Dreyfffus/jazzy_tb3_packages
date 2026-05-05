@@ -14,6 +14,8 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
 
+namespace thermocator {
+
 class ThermalBroadcaster : public rclcpp::Node {
   public:
     explicit ThermalBroadcaster()
@@ -26,6 +28,7 @@ class ThermalBroadcaster : public rclcpp::Node {
         declare_parameter("publish_rate", 5.0);
         declare_parameter("map_frame", std::string("map"));
         declare_parameter("robot_frame", std::string("base_footprint"));
+        set_parameter(rclcpp::Parameter("use_sim_time", true));
 
         const auto cx = get_parameter("zone_centers_x").as_double_array();
         const auto cy = get_parameter("zone_centers_y").as_double_array();
@@ -137,10 +140,11 @@ void ThermalBroadcaster::TimerCallback() {
                  "Published %.2f C at robot position (%.2f %.2f)",
                  total_temp, robot_x, robot_y);
 }
+} // namespace thermocator
 
 int main(int argc, char **argv) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<ThermalBroadcaster>());
+    rclcpp::spin(std::make_shared<thermocator::ThermalBroadcaster>());
     rclcpp::shutdown();
     return 0;
 }

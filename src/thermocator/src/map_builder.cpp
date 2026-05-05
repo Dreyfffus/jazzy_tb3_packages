@@ -1,6 +1,6 @@
 
 #include "thermocator/map_builder.hpp"
-
+namespace thermocator {
 void ThermalMapBuilder::ThermalCallback(const sensor_msgs::msg::Temperature::SharedPtr msg) {
     if (!_grid->IsInitialized())
         return;
@@ -49,3 +49,4 @@ void ThermalMapBuilder::PublishCallback() {
 
     RCLCPP_DEBUG(get_logger(), "Published /thermal_map (%zu cells)", out.data.size());
 }
+} // namespace thermocator

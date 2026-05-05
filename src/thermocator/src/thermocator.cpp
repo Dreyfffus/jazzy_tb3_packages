@@ -5,6 +5,9 @@
 #include <rclcpp/rclcpp.hpp>
 
 int main(int argc, char **argv) {
+
+    using namespace thermocator;
+
     rclcpp::init(argc, argv);
     auto grid = std::make_shared<ThermalGrid>();
 

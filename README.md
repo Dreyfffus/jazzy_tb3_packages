@@ -18,7 +18,7 @@ or you can source the included pdf file SETUP.pdf
 ## Package build instructions
 
 To build the packages do the following:
-
+>[!IMPORTANT]
 > Do this to start the docker containing the full jazzy installation:
 
 ```bash
@@ -26,7 +26,7 @@ To build the packages do the following:
     /tmp/.X11-unix:/tmp/.X11-unix -v /home/c2irr10/turtlebot3_ws:/ws turtlebot3_ws bash
 ```
 
-> After this step, you can use the scripts linked through the docker working directory or run :
+> After this step, you can run :
 
 ```bash
 # Installs the specified dependencies of packages
@@ -39,6 +39,22 @@ To build the packages do the following:
 # This builds the source files of the package
  cd src/thermocator && colcon build #or 
  colcon build --packages-select thermocator
+```
+> [!NOTE]
+> If you want to also fetch the headers from build to use inside your editor then you have to do this:
+```bash
+# this exports compile_commands.json to /build folder of the package for import
+colcon build [--packages-select thermocator] --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+```
+> This creates a file called `compile_commands.json` somewhere in you build, which is symlinked here.
+> If you are using an LSP (***NeoVim***), you need to set up your `.clangd` file that is read for autocompletes
+```yaml
+CompileFlags:
+  CompilationDatabase: /home/c2irr10/turtlebot3_ws/build/thermocator
+  Add:
+    - "-I/home/c2irr10/turtlebot3_ws/src/thermocator/include"
+PathMappings:
+  - "/ws/:/home/c2irr10/turtlebot3_ws/"
 ```
 ## Running any package
 
@@ -68,7 +84,7 @@ The package has ***2*** nodes :
  
  - `thermocator` is the map building node. It takes in sensor data from **`/thermal_reading`** and publishes to **`/thermal_map`**
  - `thermal_boradcaster` is the mock-sensor input node. It publishes random temperature data to **`/thermal_reading`** and subscribes to it for debug callbacks
-
+>[!IMPORTANT]
 > To run these nodes properly, the following commands need to be in order.
 ```bash
 # Terminal 1 - run the world file.
@@ -110,3 +126,47 @@ ros2 launch turtlebot3_cartographer cartographer.launch.py use_sim_time:=true
  - Add the TurtleBot3 Model : **Add** > `RobotModel` > **topic** > `/robot_description`
  - Add the SLAM map : **Add** > `Map` > **topic** > `/map`
  - Add the thermal layer :  **Add** > **By Display Type** > scroll to `thermocator` > **ThermalDisplay** > set topic to `/thermal_map`
+
+ >[!TIP]
+ > You can greatly speed up the setup by using the `tb3.bash` script. It has multiple functionalities for attaching, starting and
+ > running from outside the container useful startup commands.
+```bash
+# Start the container
+./tb3.bash start
+
+# Attach a new terminal to the running container
+./tb3.bash attach
+
+# Launch the Gazebo simulation
+./tb3.bash remote sim
+
+# Launch Cartographer SLAM + RViz2
+./tb3.bash remote rviz
+
+# Launch Nav2 with thermal params
+./tb3.bash remote nav
+
+# Run the thermal map builder
+./tb3.bash remote thermal
+
+# Run the fake sensor broadcaster
+./tb3.bash remote broadcaster
+
+# Teleop keyboard
+./tb3.bash remote teleop
+
+# Build everything
+./tb3.bash remote build
+
+# Build one package
+./tb3.bash remote build thermocator
+
+# Run thermocator on the real robot
+./tb3.sh robot thermal 192.168.1.42
+
+# Run broadcaster on the real robot
+./tb3.sh robot broadcaster 192.168.1.42
+
+# Run bringup on the real robot
+./tb3.sh robot bringup 192.168.1.42
+```
