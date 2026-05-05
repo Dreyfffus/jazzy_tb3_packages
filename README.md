@@ -160,4 +160,13 @@ ros2 launch turtlebot3_cartographer cartographer.launch.py use_sim_time:=true
 
 # Build one package
 ./tb3.bash remote build thermocator
+
+# Run thermocator on the real robot
+./tb3.sh robot thermal 192.168.1.42
+
+# Run broadcaster on the real robot
+./tb3.sh robot broadcaster 192.168.1.42
+
+# Run bringup on the real robot
+./tb3.sh robot bringup 192.168.1.42
 ```

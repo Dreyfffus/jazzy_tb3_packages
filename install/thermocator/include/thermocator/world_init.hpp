@@ -7,7 +7,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include "thermocator/thermal_grid.hpp"
-
+namespace thermocator {
 class WorldInitializer : public rclcpp::Node {
   public:
     explicit WorldInitializer(std::shared_ptr<ThermalGrid> grid)
@@ -42,3 +42,4 @@ class WorldInitializer : public rclcpp::Node {
     std::promise<void> _promise;
     std::atomic<bool> _fired;
 };
+} // namespace thermocator

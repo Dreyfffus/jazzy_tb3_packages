@@ -52,10 +52,6 @@ ThermalDisplay::~ThermalDisplay() {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Lifecycle
-// ─────────────────────────────────────────────────────────────────────────────
-
 void ThermalDisplay::onInitialize() {
     MessageFilterDisplay::onInitialize();
 
@@ -65,7 +61,6 @@ void ThermalDisplay::onInitialize() {
 
     static int instance_count = 0;
 
-    // ── Create isolated resource group ────────────────────────────────────
     _resource_group_name = _base_name + "_group";
     Ogre::ResourceGroupManager::getSingleton().createResourceGroup(
         _resource_group_name);
@@ -76,7 +71,6 @@ void ThermalDisplay::onInitialize() {
     _manual_object->setDynamic(true);
     _child_node->attachObject(_manual_object);
 
-    // ── Material in isolated group ────────────────────────────────────────
     _material = Ogre::MaterialManager::getSingleton().create(
         _base_name + "_mat",
         _resource_group_name); // ← not DEFAULT_RESOURCE_GROUP_NAME
@@ -98,10 +92,6 @@ void ThermalDisplay::reset() {
     _last_height = 0;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Property Slots
-// ─────────────────────────────────────────────────────────────────────────────
-
 void ThermalDisplay::onAlphaChanged() {
     // Alpha change only affects pixel colors — no geometry rebuild needed
     // Will take effect on next message. If you want immediate update,
@@ -112,13 +102,8 @@ void ThermalDisplay::onColorsChanged() {
     // Same as above — next message picks up the new color scheme
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Message Processing
-// ─────────────────────────────────────────────────────────────────────────────
-
 void ThermalDisplay::processMessage(
     nav_msgs::msg::OccupancyGrid::ConstSharedPtr msg) {
-    // ── Transform grid origin into the RViz2 fixed frame ─────────────────────
     Ogre::Vector3 position;
     Ogre::Quaternion orientation;
 
@@ -133,7 +118,6 @@ void ThermalDisplay::processMessage(
         return;
     }
 
-    // ── Rebuild geometry only if grid dimensions changed ─────────────────────
     const bool dims_changed =
         msg->info.width != _last_width ||
         msg->info.height != _last_height;
@@ -144,23 +128,16 @@ void ThermalDisplay::processMessage(
         _last_height = msg->info.height;
     }
 
-    // ── Always update texture — new data every message ────────────────────────
     updateTexture(*msg);
 
-    // ── Place geometry at the grid origin in the scene ────────────────────────
     _child_node->setPosition(position);
     _child_node->setOrientation(orientation);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Texture Update
-// ─────────────────────────────────────────────────────────────────────────────
 
 void ThermalDisplay::updateTexture(const nav_msgs::msg::OccupancyGrid &grid) {
     const uint32_t w = grid.info.width;
     const uint32_t h = grid.info.height;
 
-    // ── Create or recreate texture when dimensions change ────────────────────
     if (_texture ||
         _texture->getWidth() != w ||
         _texture->getHeight() != h) {
@@ -179,18 +156,15 @@ void ThermalDisplay::updateTexture(const nav_msgs::msg::OccupancyGrid &grid) {
         _material->getTechnique(0)->getPass(0)->getTextureUnitState(0)->setTextureName(_texture->getName());
     }
 
-    // ── Read current property values ──────────────────────────────────────────
     const float alpha = _alpha_property->getFloat();
     const QColor cold = _cold_color_property->getColor();
     const QColor hot = _hot_color_property->getColor();
     const uint8_t a = static_cast<uint8_t>(alpha * 255.0f);
 
-    // Precompute color channel deltas for the lerp
     const float dr = static_cast<float>(hot.red() - cold.red());
     const float dg = static_cast<float>(hot.green() - cold.green());
     const float db = static_cast<float>(hot.blue() - cold.blue());
 
-    // ── Lock pixel buffer and fill ────────────────────────────────────────────
     Ogre::HardwarePixelBufferSharedPtr pixel_buffer = _texture->getBuffer();
     pixel_buffer->lock(Ogre::HardwareBuffer::HBL_DISCARD);
 
@@ -233,10 +207,6 @@ void ThermalDisplay::updateTexture(const nav_msgs::msg::OccupancyGrid &grid) {
     pixel_buffer->unlock();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Plane Geometry
-// ─────────────────────────────────────────────────────────────────────────────
-
 void ThermalDisplay::updatePlane(const nav_msgs::msg::OccupancyGrid &grid) {
     const float w = static_cast<float>(grid.info.width) * grid.info.resolution;
     const float h = static_cast<float>(grid.info.height) * grid.info.resolution;
@@ -269,5 +239,4 @@ void ThermalDisplay::updatePlane(const nav_msgs::msg::OccupancyGrid &grid) {
     _manual_object->end();
 };
 } // namespace thermocator
-// ── pluginlib registration ────────────────────────────────────────────────────
 PLUGINLIB_EXPORT_CLASS(thermocator::ThermalDisplay, rviz_common::Display)

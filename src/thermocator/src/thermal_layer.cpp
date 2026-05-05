@@ -35,7 +35,7 @@ void ThermalLayer::onInitialize() {
 
     _sub = node->create_subscription<nav_msgs::msg::OccupancyGrid>(
         _thermal_map_topic, qos,
-        std::bind(&ThermalLayer::thermalMapCallback, this, std::placeholders::_1));
+        std::bind(&ThermalLayer::ThermalMapCallback, this, std::placeholders::_1));
 
     RCLCPP_INFO(node->get_logger(),
                 "ThermalLayer initialised — topic: %s  cold: %.1f  hot: %.1f  lethal: %.1f",
@@ -118,7 +118,7 @@ void ThermalLayer::updateCosts(
             if (thermal_value == -1)
                 continue;
 
-            const uint8_t thermal_cost = thermalToCost(thermal_value);
+            const uint8_t thermal_cost = ThermalToCost(thermal_value);
 
             // Skip free cells — no need to overwrite
             if (thermal_cost == nav2_costmap_2d::FREE_SPACE)

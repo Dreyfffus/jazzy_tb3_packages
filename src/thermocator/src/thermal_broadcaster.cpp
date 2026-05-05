@@ -14,6 +14,8 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
 
+namespace thermocator {
+
 class ThermalBroadcaster : public rclcpp::Node {
   public:
     explicit ThermalBroadcaster()
@@ -138,10 +140,11 @@ void ThermalBroadcaster::TimerCallback() {
                  "Published %.2f C at robot position (%.2f %.2f)",
                  total_temp, robot_x, robot_y);
 }
+} // namespace thermocator
 
 int main(int argc, char **argv) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<ThermalBroadcaster>());
+    rclcpp::spin(std::make_shared<thermocator::ThermalBroadcaster>());
     rclcpp::shutdown();
     return 0;
 }

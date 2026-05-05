@@ -1,9 +1,9 @@
 #pragma once
+#include "rclcpp/rclcpp.hpp"
 #include <memory>
 #include <mutex>
 #include <string>
 
-#include "rclcpp/rclcpp.hpp"
 #include <nav2_costmap_2d/costmap_2d.hpp>
 #include <nav2_costmap_2d/layer.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
@@ -24,7 +24,7 @@ class ThermalLayer : public nav2_costmap_2d::Layer {
         int min_i, int min_j,
         int max_i, int max_j) override;
     void reset() override;
-    void isClearable() override { return false; }
+    bool isClearable() override { return false; }
 
   private:
     void ThermalMapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
