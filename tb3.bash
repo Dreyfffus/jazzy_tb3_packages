@@ -10,10 +10,6 @@ SETUP="source /opt/ros/jazzy/setup.bash && \
        source /ws/install/setup.bash && \
        export TURTLEBOT3_MODEL=burger"
 
-ROBOT_SETUP="source /opt/ros/jazzy/setup.bash && \
-             source ~/turtlebot3_ws/install/setup.bash && \
-             export TURTLEBOT3_MODEL=burger"
-
 # ── Helper — ensure container is running before exec ─────────────────────────
 ensure_container() {
     if ! docker ps --format '{{.Names}}' | grep -q "^turtlebot3_container$"; then
@@ -33,7 +29,7 @@ ensure_container() {
 }
 
 if [ -z "$attach" ]; then
-    echo "Usage: $0 <start | attach | remote | robot> [service] [package|ip]"
+    echo "Usage: $0 <start | attach | remote> [service] [package]"
     exit 1
 fi
 
@@ -82,15 +78,24 @@ case "$attach" in
                 docker exec -it turtlebot3_container bash -c \
                     "${SETUP} && \
                      ros2 launch slam_toolbox online_async_launch.py \
-                     use_sim_time:=True"
+                     use_sim_time:=True \
+                     params_file:=/ws/src/thermocator/config/slam_params.yaml"
                 ;;
 
-            nav)
+            nav_run)
                 docker exec -it turtlebot3_container bash -c \
                     "${SETUP} && \
                      ros2 launch turtlebot3_navigation2 navigation2.launch.py \
                      use_sim_time:=True \
                      params_file:=/ws/src/thermocator/config/nav2_thermal_params.yaml"
+                ;;
+
+            nav_map)
+                docker exec -it turtlebot3_container bash -c \
+                    "${SETUP} && \
+                     ros2 launch turtlebot3_navigation2 navigation2.launch.py \
+                     use_sim_time:=True \
+                     params_file:=/ws/src/thermocator/config/nav2_mapping_params.yaml"
                 ;;
 
             thermal)
@@ -147,71 +152,9 @@ case "$attach" in
         esac
         ;;
 
-    robot)
-        # ── Validate IP ───────────────────────────────────────────────────
-        if [ -z "$service" ]; then
-            echo "Error: robot mode requires a service argument"
-            echo "Usage: $0 robot <service> <ip>"
-            echo "Available services: thermal | broadcaster | teleop | bringup"
-            exit 1
-        fi
-
-        if [ -z "$robot_ip" ]; then
-            echo "Error: robot mode requires an IP address as 4th argument"
-            echo "Usage: $0 robot <service> <ip>"
-            exit 1
-        fi
-
-        # ── Verify SSH connectivity before attempting anything ────────────
-        echo "Checking SSH connectivity to $robot_ip ..."
-        if ! ssh -o ConnectTimeout=5 -o BatchMode=yes \
-                 ubuntu@$robot_ip exit 2>/dev/null; then
-            echo "Error: cannot reach robot at $robot_ip"
-            echo "Make sure the robot is on and SSH keys are set up."
-            exit 1
-        fi
-        echo "Connected to robot at $robot_ip"
-
-        case "$service" in
-            thermal)
-                echo "Starting ThermalMapBuilder on robot ..."
-                ssh -t ubuntu@$robot_ip bash -c \
-                    "'${ROBOT_SETUP} && \
-                      ros2 run thermocator thermocator'"
-                ;;
-
-            broadcaster)
-                echo "Starting ThermalBroadcaster on robot ..."
-                ssh -t ubuntu@$robot_ip bash -c \
-                    "'${ROBOT_SETUP} && \
-                      ros2 run thermocator thermal_broadcaster'"
-                ;;
-
-            teleop)
-                echo "Starting Teleop on robot ..."
-                ssh -t ubuntu@$robot_ip bash -c \
-                    "'${ROBOT_SETUP} && \
-                      ros2 run turtlebot3_teleop teleop_keyboard'"
-                ;;
-
-            bringup)
-                echo "Starting TurtleBot3 bringup on robot ..."
-                ssh -t ubuntu@$robot_ip bash -c \
-                    "'${ROBOT_SETUP} && \
-                      ros2 launch turtlebot3_bringup robot.launch.py'"
-                ;;
-
-            *)
-                echo "Error: unknown robot service '$service'"
-                echo "Available robot services: thermal | broadcaster | teleop | bringup"
-                exit 1
-                ;;
-        esac
-        ;;
-
     *)
         echo "Error: first argument must be start | attach | remote"
-        echo "Usage: $0 <start | attach | remote | robot> [service] [package|ip]"
+        echo "Usage: $0 <start | attach | remote> [service] [package]"
         exit 1
         ;;
 esac

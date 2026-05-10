@@ -1,0 +1,169 @@
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+[INFO] [1778432135.212508728] [rviz2]: Stereo is NOT SUPPORTED
+[INFO] [1778432135.212629628] [rviz2]: OpenGl version: 4.5 (GLSL 4.5)
+[INFO] [1778432135.253594975] [rviz2]: Stereo is NOT SUPPORTED
+=== 1 base init done
+=== 2 scene valid
+=== 3 base_name: ThermalDisplay_0
+=== 4 resource group created
+=== 5 child node created
+=== 6 manual object created
+=== 7 object attached
+=== 8 material created
+=== 9 shadows set
+=== 10 technique got
+=== 11 lighting set
+=== 12 pass got
+=== 13 blending set
+=== 14 depth write set
+=== 15 texture unit created
+=== 16 filtering set
+=== 17 onInitialize complete
+=== T1 w=73 h=65
+=== T2 creating texture
+=== T3 old texture removed
+=== T4 texture created
+=== T5 texture bound to material
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked
+=== T1 w=73 h=65
+=== T6 locking pixel buffer
+=== T7 got buffer
+=== T8 buffer locked
+=== T9 got data pointer
+=== T10 buffer unlocked

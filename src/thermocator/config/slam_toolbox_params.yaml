@@ -1,0 +1,170 @@
+# =============================================================================
+# slam_toolbox_params.yaml
+# Configuration for slam_toolbox in online asynchronous mapping mode.
+#
+# "Online" means it processes data as it arrives from the live sensor stream.
+# "Asynchronous" means it does not block waiting for each scan to be processed
+# before accepting the next one — it drops scans it cannot keep up with rather
+# than building a processing backlog. This is the correct mode for simulation
+# and real-time robot operation.
+#
+# Derived from your robot's TF tree as seen in nav2_thermal_params.yaml:
+#   base_frame    -> base_footprint
+#   odom_frame    -> odom
+#   map_frame     -> map
+#   scan topic    -> /scan
+# =============================================================================
+
+slam_toolbox:
+  ros__parameters:
+    # -------------------------------------------------------------------------
+    # Core frame and topic configuration
+    # These must match your robot's actual TF tree and topic names exactly.
+    # -------------------------------------------------------------------------
+
+    # Must be true for Gazebo. Subscribes to /clock instead of wall clock.
+    # Set to false when running on a physical robot.
+    use_sim_time: true
+
+    # The frame your odometry system publishes to. Matches your Nav2 config.
+    odom_frame: odom
+
+    # The root frame of your robot body. Matches collision_monitor and amcl
+    # in your Nav2 params. slam_toolbox will look up the TF from this frame
+    # to your laser frame to know where the scanner sits on the robot.
+    base_frame: base_footprint
+
+    # The frame slam_toolbox will create and publish as the map origin.
+    # Must match global_frame in your Nav2 costmap configs.
+    map_frame: map
+
+    # The laser scan topic slam_toolbox subscribes to.
+    # Matches the scan source in your Nav2 costmap observation_sources.
+    scan_topic: /scan
+
+    # -------------------------------------------------------------------------
+    # Operating mode
+    # -------------------------------------------------------------------------
+
+    # 'mapping'      -> builds a new map from scratch. Use this now.
+    # 'localization' -> loads an existing map and localizes against it.
+    #                   Do NOT use this during a mapping session.
+    mode: mapping
+
+    # -------------------------------------------------------------------------
+    # Map serialization
+    # slam_toolbox can save its internal state (not just the image) so you
+    # can resume a mapping session later from exactly where you left off.
+    # This is separate from saving the final .yaml/.pgm via map_saver_cli.
+    # -------------------------------------------------------------------------
+
+    # Automatically save the toolbox's internal map state on shutdown.
+    # The saved file can be loaded in a future session to continue mapping.
+    serialize_map_when_closing: true
+
+    # Where to save and load the serialized map state.
+    # Change this path to wherever your maps directory lives in your workspace.
+    map_file_name: /ws/slam_map
+    map_start_at_dock: false
+
+    # -------------------------------------------------------------------------
+    # Scan processing
+    # -------------------------------------------------------------------------
+
+    # How far apart (in meters) two scans must be before a new scan is added
+    # to the map. Lower values produce a denser map but increase CPU load.
+    # 0.5 is a reasonable starting point for indoor environments.
+    minimum_travel_distance: 0.5
+
+    # How far the robot must rotate (in radians) before a new scan is added.
+    minimum_travel_heading: 0.5
+
+    # Maximum range of laser returns to use for mapping. Returns beyond this
+    # are discarded. Should not exceed your scanner's reliable range.
+    # Matches laser_max_range from your amcl config as a reference point.
+    scan_buffer_size: 10
+    scan_buffer_maximum_scan_distance: 10.0
+
+    # -------------------------------------------------------------------------
+    # Loop closure
+    # Loop closure is how slam_toolbox corrects accumulated drift by
+    # recognizing previously visited places and snapping the map together.
+    # -------------------------------------------------------------------------
+
+    # How similar two scans must be to be considered a loop closure candidate.
+    # Range 0.0 to 1.0. Lower values = more permissive = more false closures.
+    link_match_minimum_response_fine: 0.1
+
+    # The search radius (meters) around the current pose to look for loop
+    # closure candidates. Larger values catch bigger drift corrections but
+    # are more expensive to compute.
+    link_scan_maximum_distance: 1.5
+
+    # How far back in the pose graph to search for loop closure candidates.
+    loop_search_maximum_distance: 3.0
+
+    # Minimum score a loop closure candidate must achieve to be accepted.
+    # Higher values = more conservative = fewer but more reliable closures.
+    loop_match_minimum_response_coarse: 0.35
+    loop_match_maximum_variance_coarse: 3.0
+    loop_match_minimum_response_fine: 0.45
+
+    # -------------------------------------------------------------------------
+    # Correlation parameters
+    # These control the scan matching resolution used during loop closure.
+    # -------------------------------------------------------------------------
+
+    # The search window size (meters) for coarse scan matching.
+    # Larger window catches bigger positional errors at higher compute cost.
+    correlation_search_space_dimension: 0.5
+    correlation_search_space_resolution: 0.01
+    correlation_search_space_smear_deviation: 0.1
+
+    # The search window for the loop closure coarse search pass.
+    loop_search_space_dimension: 8.0
+    loop_search_space_resolution: 0.05
+    loop_search_space_smear_deviation: 0.03
+
+    # -------------------------------------------------------------------------
+    # Solver
+    # slam_toolbox uses a pose graph optimizer to globally correct the map.
+    # The default solver (Ceres) is appropriate for most use cases.
+    # -------------------------------------------------------------------------
+
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    ceres_dogleg_type: TRADITIONAL_DOGLEG
+    ceres_loss_function: None
+
+    # -------------------------------------------------------------------------
+    # Performance
+    # -------------------------------------------------------------------------
+
+    # Number of scan processing threads. Keep at or below your CPU core count.
+    # In simulation, 2 is a safe value that avoids starving Gazebo.
+    threads: 2
+
+    # How often (seconds) to run the loop closure search.
+    # Lower values are more responsive but more CPU intensive.
+    loop_search_minimum_chain_size: 10
+    throttle_scans: 1
+    transform_publish_period: 0.02
+    map_update_interval: 1.0
+
+    # -------------------------------------------------------------------------
+    # TF publication
+    # -------------------------------------------------------------------------
+
+    # How long published TF transforms remain valid.
+    # Should be slightly larger than transform_publish_period above.
+    transform_timeout: 0.2
+
+    # TF lookup timeout. Increase if you see TF timeout warnings on startup.
+    tf_buffer_duration: 30.0
+
+    # Publish the map->odom transform. Must be true — this is the core output
+    # of slam_toolbox that Nav2 depends on for global localization.
+    publish_period: 1.0
+    enable_interactive_mode: false
