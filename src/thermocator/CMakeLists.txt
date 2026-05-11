@@ -73,6 +73,18 @@ target_include_directories(thermal_broadcaster PUBLIC
 )
 target_compile_features(thermal_broadcaster PUBLIC cxx_std_17)
 
+add_executable(dt_mediator
+    src/dt_mediator.cpp
+)
+ament_target_dependencies(dt_mediator ${THERMOCATOR_DEPS})
+target_compile_features(dt_mediator PUBLIC cxx_std_17)
+
+add_executable(sync_monitor
+    src/sync_monitor.cpp
+)
+ament_target_dependencies(sync_monitor ${THERMOCATOR_DEPS})
+target_compile_features(sync_monitor PUBLIC cxx_std_17)
+
 add_library(thermocator_layer SHARED
     src/thermal_layer.cpp
     include/thermocator/thermal_layer.hpp
@@ -128,6 +140,8 @@ install(TARGETS
   thermocator_layer
   thermal_broadcaster
   decision_node
+  dt_mediator
+  sync_monitor
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -151,6 +165,11 @@ install(
 install(
     DIRECTORY launch/
     DESTINATION share/${PROJECT_NAME}/launch
+)
+
+install(
+    DIRECTORY ../../docs/
+    DESTINATION share/${PROJECT_NAME}/docs
 )
 
 if(BUILD_TESTING)

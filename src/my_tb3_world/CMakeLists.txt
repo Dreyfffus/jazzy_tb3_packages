@@ -6,6 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(ament_cmake REQUIRED)
 
 install(DIRECTORY
+  config
   launch
   worlds
   DESTINATION share/${PROJECT_NAME}

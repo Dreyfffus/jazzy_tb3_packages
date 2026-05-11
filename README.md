@@ -75,8 +75,108 @@ Or alternatively you can run any node with :
 ```bash
  source install/setup.bash
  export TURTLEBOT3_MODEL=burger
- ros2 run thermocator <node name>
+ros2 run thermocator <node name>
 ```
+
+## Digital twin integration test
+
+Use the `dt-integration-support` branch for the digital twin demo.
+
+```bash
+git switch dt-integration-support
+```
+
+Start the Docker environment with display forwarding, then build the workspace:
+
+```bash
+./tb3.bash start
+```
+
+Inside the container:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /opt/turtlebot3_ws/install/setup.bash
+cd /ws
+colcon build --packages-select my_tb3_world thermocator --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+source install/setup.bash
+export TURTLEBOT3_MODEL=burger
+```
+
+Open new terminals with `./tb3.bash attach`, source the same environment, and run:
+
+```bash
+# Terminal 1: Gazebo with ROS/Gazebo bridge
+ros2 launch my_tb3_world sim_with_bridge.launch.py use_sim_time:=true
+```
+
+```bash
+# Terminal 2: DT mediator, sync monitor, and thermal nodes
+ros2 launch thermocator dt_integration.launch.py use_sim_time:=true sync_tolerance_seconds:=0.5
+```
+
+```bash
+# Terminal 3: Nav2 with the thermal costmap layer
+ros2 launch turtlebot3_navigation2 navigation2.launch.py \
+  use_sim_time:=true \
+  params_file:=/ws/src/thermocator/config/nav2_thermal_params.yaml
+```
+
+Check the Gazebo bridge topics:
+
+```bash
+ros2 topic list
+ros2 topic echo /clock --once
+ros2 topic echo /odom --once
+ros2 topic echo /scan --once
+ros2 topic echo /tf --once
+```
+
+Check the digital twin topics:
+
+```bash
+ros2 topic list | grep /dt
+ros2 topic echo /dt/odom --once
+ros2 topic echo /dt/scan --once
+ros2 topic echo /dt/thermal_reading --once
+ros2 topic echo /dt/thermal_map --once
+```
+
+Test command forwarding from the digital twin interface:
+
+```bash
+ros2 topic echo /cmd_vel --once
+```
+
+In another terminal:
+
+```bash
+ros2 topic pub --once /dt/cmd_vel geometry_msgs/msg/Twist \
+  "{linear: {x: 0.05}, angular: {z: 0.0}}"
+```
+
+Expected result: `/cmd_vel` receives a `geometry_msgs/msg/TwistStamped` command and the robot moves forward in Gazebo.
+
+Check synchronization output in the `dt_integration.launch.py` terminal. Healthy streams print lines like:
+
+```text
+Sync ok [odom]
+Sync ok [scan]
+Sync ok [thermal_map]
+```
+
+Check the thermal pipeline:
+
+```bash
+ros2 topic echo /thermal_reading --once
+ros2 topic echo /thermal_map --once
+ros2 topic hz /thermal_reading
+ros2 topic hz /thermal_map
+```
+
+For the full manual demo flow, follow `docs/demo_checklist.md`.
+
+> Note: Gazebo GUI needs a working display/OpenGL session. In a headless Docker shell, `gz sim -g` can fail with a Qt/OpenGL error. Use the normal WSLg/X11 Docker session from `./tb3.bash start` for the full Gazebo movement test.
 
 ## Nodes :
 
