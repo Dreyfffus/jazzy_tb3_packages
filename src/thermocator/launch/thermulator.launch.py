@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -9,12 +11,8 @@ from launch_ros.actions import Node
 def generate_launch_description():
 
     pkg_thermocator = get_package_share_directory("thermocator")
-    pkg_slam_toolbox = get_package_share_directory("slam_toolbox")
+    pkg_cartographer = get_package_share_directory("cartographer_ros")
     pkg_nav2_bringup = get_package_share_directory("nav2_bringup")
-
-    slam_params_file = os.path.join(
-        pkg_thermocator, "config", "slam_toolbox_params.yaml"
-    )
 
     nav2_params_file = os.path.join(pkg_thermocator, "config", "nav2_slam_params.yaml")
 
@@ -22,28 +20,23 @@ def generate_launch_description():
         pkg_thermocator, "launch", "thermocator.launch.py"
     )
 
-    # -------------------------------------------------------------------------
-    # slam_toolbox
-    # First to launch. Owns /map and the map->odom transform.
-    # Everything else depends on these being available.
-    # -------------------------------------------------------------------------
-    slam_toolbox_launch = IncludeLaunchDescription(
+    cartographer = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_slam_toolbox, "launch", "online_async_launch.py")
+            os.path.join(pkg_cartographer, "launch", "online_async_launch.py")
         ),
         launch_arguments={
-            "params_file": slam_params_file,
             "use_sim_time": "true",
         }.items(),
     )
 
     # -------------------------------------------------------------------------
-    # Nav2
-    # autostart:=false — disables nav2_bringup's own lifecycle manager so it
-    # does not attempt to activate docking_server. Our lifecycle manager below
-    # takes full control of node activation.
+    # Nav2 — delayed 5s to give slam_toolbox time to publish /map and TF
+    #
+    # autostart:=false disables nav2_bringup's own lifecycle manager so it
+    # does not attempt to activate nodes we have excluded (amcl, map_server,
+    # docking_server). Our lifecycle manager below takes full control.
     # -------------------------------------------------------------------------
-    nav2_launch = IncludeLaunchDescription(
+    nav2 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_nav2_bringup, "launch", "navigation_launch.py")
         ),
@@ -55,10 +48,13 @@ def generate_launch_description():
     )
 
     # -------------------------------------------------------------------------
-    # Our lifecycle manager
-    # Replaces nav2_bringup's hardcoded list which includes docking_server.
-    # map_server and amcl are excluded — slam_toolbox owns those roles.
-    # route_server excluded — not relevant for this robot.
+    # Lifecycle manager — replaces nav2_bringup's hardcoded list
+    #
+    # Excluded intentionally:
+    #   amcl        -- slam_toolbox owns localization
+    #   map_server  -- slam_toolbox publishes /map
+    #   route_server -- not used
+    #   docking_server -- not used
     # -------------------------------------------------------------------------
     lifecycle_manager = Node(
         package="nav2_lifecycle_manager",
@@ -83,29 +79,30 @@ def generate_launch_description():
         ],
     )
 
-    nav2_delayed = TimerAction(period=5.0, actions=[nav2_launch, lifecycle_manager])
+    nav2_delayed = TimerAction(period=5.0, actions=[nav2, lifecycle_manager])
 
     # -------------------------------------------------------------------------
-    # Thermocator stack
-    # Delayed 10 seconds — after slam_toolbox (0s) and Nav2 (5s) are both up.
+    # Thermocator stack — delayed 10s
+    #
+    # Internal delays inside thermocator.launch.py add further staggering:
     #   0s  -> slam_toolbox
     #   5s  -> Nav2 + lifecycle manager
-    #   10s -> thermal_broadcaster
-    #   13s -> thermal_map_builder
-    #   18s -> decision_node
+    #  10s  -> thermal_broadcaster        (immediate inside thermocator launch)
+    #  13s  -> thermal_map_builder        (3s delay inside thermocator launch)
+    #  18s  -> decision_node              (8s delay inside thermocator launch)
     # -------------------------------------------------------------------------
-    thermocator_launch = IncludeLaunchDescription(
+    thermocator = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(thermocator_launch_file),
         launch_arguments={
             "use_sim_time": "true",
         }.items(),
     )
 
-    thermocator_delayed = TimerAction(period=10.0, actions=[thermocator_launch])
+    thermocator_delayed = TimerAction(period=10.0, actions=[thermocator])
 
     return LaunchDescription(
         [
-            slam_toolbox_launch,
+            cartographer,
             nav2_delayed,
             thermocator_delayed,
         ]

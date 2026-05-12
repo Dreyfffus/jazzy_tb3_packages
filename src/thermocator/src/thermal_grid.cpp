@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <optional>
 #include <stdint.h>
 #include <vector>
@@ -36,6 +37,83 @@ std::optional<std::pair<int, int>> ThermalGrid::WorldToGrid(double x,
     return std::make_pair(col, row);
 }
 
+bool ThermalGrid::HasHeatData(double min_temperature) const {
+    if (!_initialized)
+        return false;
+    for (size_t i = 0; i < _visited.size(); ++i) {
+        if (_visited[i] && _temperature[i] >= min_temperature)
+            return true;
+    }
+    return false;
+}
+
+std::pair<double, double> ThermalGrid::GetHottestCell() const {
+    double max_temp = std::numeric_limits<double>::lowest();
+    int best_col = 0, best_row = 0;
+
+    for (uint32_t row = 0; row < _height; ++row) {
+        for (uint32_t col = 0; col < _width; ++col) {
+            const size_t idx = static_cast<size_t>(row) * _width + col;
+            if (_visited[idx] && _temperature[idx] > max_temp) {
+                max_temp = _temperature[idx];
+                best_col = static_cast<int>(col);
+                best_row = static_cast<int>(row);
+            }
+        }
+    }
+
+    return {
+        _origin_x + (best_col + 0.5) * _resolution,
+        _origin_y + (best_row + 0.5) * _resolution};
+}
+
+void ThermalGrid::Resize(const nav_msgs::msg::MapMetaData &new_info) {
+    const uint32_t new_width = new_info.width;
+    const uint32_t new_height = new_info.height;
+    const size_t new_size = static_cast<size_t>(new_width) * new_height;
+
+    std::vector<double> new_temperature(new_size, 0.0);
+    std::vector<float> new_confidence(new_size, 0.0f);
+    std::vector<bool> new_visited(new_size, false);
+
+    const int col_offset = static_cast<int>(std::round(
+        (_origin_x - new_info.origin.position.x) / _resolution));
+    const int row_offset = static_cast<int>(std::round(
+        (_origin_y - new_info.origin.position.y) / _resolution));
+
+    for (uint32_t old_row = 0; old_row < _height; ++old_row) {
+        for (uint32_t old_col = 0; old_col < _width; ++old_col) {
+            const size_t old_idx = static_cast<size_t>(old_row) * _width + old_col;
+
+            if (!_visited[old_idx])
+                continue;
+
+            const int new_col = static_cast<int>(old_col) + col_offset;
+            const int new_row = static_cast<int>(old_row) + row_offset;
+
+            if (new_col < 0 || new_col >= static_cast<int>(new_width) ||
+                new_row < 0 || new_row >= static_cast<int>(new_height))
+                continue;
+
+            const size_t new_idx = static_cast<size_t>(new_row) * new_width + new_col;
+
+            new_temperature[new_idx] = _temperature[old_idx];
+            new_confidence[new_idx] = _confidence[old_idx];
+            new_visited[new_idx] = true;
+        }
+    }
+
+    _temperature = std::move(new_temperature);
+    _confidence = std::move(new_confidence);
+    _visited = std::move(new_visited);
+
+    _width = new_width;
+    _height = new_height;
+    _origin_x = new_info.origin.position.x;
+    _origin_y = new_info.origin.position.y;
+    _info = new_info;
+}
+
 void ThermalGrid::Update(double world_x, double world_y, double temperature) {
     if (!_initialized)
         return;
@@ -44,8 +122,8 @@ void ThermalGrid::Update(double world_x, double world_y, double temperature) {
     if (!center.has_value())
         return;
 
-    const auto center_row = center->first;
-    const auto center_col = center->second;
+    const auto center_row = center->second;
+    const auto center_col = center->first;
 
     const int radius = static_cast<int>(3.0f * _sigma / _resolution);
 
@@ -54,8 +132,8 @@ void ThermalGrid::Update(double world_x, double world_y, double temperature) {
             const int row = center_row + dr;
             const int col = center_col + dc;
 
-            if (row < 0 || row > static_cast<int>(_width) ||
-                col < 0 || col > static_cast<int>(_height))
+            if (row < 0 || row > static_cast<int>(_height) ||
+                col < 0 || col > static_cast<int>(_width))
                 continue;
 
             const float dist = std::sqrt(static_cast<float>(dr * dr + dc * dc)) * _resolution;
@@ -82,7 +160,7 @@ void ThermalGrid::ApplyEMA(size_t idx, double temperature, float gaussian_weight
         _visited[idx] = true;
 
     } else {
-        _temperature[idx] = effective_alpha * temperature + (1.0 - effective_alpha) + _temperature[idx];
+        _temperature[idx] = effective_alpha * temperature + (1.0 - effective_alpha) * _temperature[idx];
     }
 
     _confidence[idx] = std::min(_confidence[idx] + gaussian_weight, 10.0f);
@@ -93,7 +171,7 @@ std::vector<int8_t> ThermalGrid::ToOccupancyData(double cold_thresh, double hot_
 
     std::vector<int8_t> data(cell_count, -1);
 
-    const double range = hot_thresh = cold_thresh;
+    const double range = hot_thresh - cold_thresh;
 
     for (size_t i = 0; i < cell_count; ++i) {
         if (!_visited[i] || _confidence[i] < min_conf) {

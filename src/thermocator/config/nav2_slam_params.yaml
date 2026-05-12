@@ -2,16 +2,14 @@
 # nav2_slam_params.yaml
 # Nav2 configuration for LIVE MAP BUILDING with slam_toolbox
 #
-# Key differences from nav2_thermal_params.yaml:
-#   - amcl is REMOVED: slam_toolbox owns the map->odom TF chain
-#   - map_server is REMOVED: slam_toolbox publishes /map
-#   - global costmap static_layer remains to consume slam_toolbox's /map
-#   - local costmap is unchanged
+# - amcl is REMOVED: slam_toolbox owns the map->odom TF chain
+# - map_server is REMOVED: slam_toolbox publishes /map
+# - thermal_layer is REMOVED: decision node seeks heat, thermal layer opposes it
+# - global costmap static_layer consumes slam_toolbox's /map
+# - local costmap is unchanged
 #
-# IMPORTANT — Your launch file must also reflect these removals.
-# The lifecycle manager's node_names list must NOT include:
-#   'amcl' or 'map_server'
 # slam_toolbox must be launched separately and running BEFORE Nav2.
+# The lifecycle manager node_names list must NOT include amcl or map_server.
 # =============================================================================
 
 bt_navigator:
@@ -126,16 +124,7 @@ local_costmap:
       height: 3
       resolution: 0.05
       robot_radius: 0.1
-      # Static layer is intentionally EXCLUDED from local costmap.
-      # During mapping the local costmap only needs live sensor data.
-      plugins:
-        ["obstacle_layer", "voxel_layer", "thermal_layer", "inflation_layer"]
-      thermal_layer:
-        plugin: "thermocator/ThermalLayer"
-        cold_threshold: 25.0
-        hot_threshold: 60.0
-        lethal_threshold: 75.0
-        thermal_map_topic: "/thermal_map"
+      plugins: ["obstacle_layer", "voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         inflation_radius: 0.5
@@ -182,23 +171,11 @@ global_costmap:
       transform_tolerance: 0.5
       robot_radius: 0.1
       resolution: 0.05
-      # During SLAM, unknown space must be traversable so the robot can
-      # explore into unmapped areas without the planner refusing to plan.
+      # Unknown space must be traversable so the planner can route
+      # into unmapped areas during active exploration
       track_unknown_space: true
       plugins:
-        [
-          "static_layer",
-          "obstacle_layer",
-          "voxel_layer",
-          "thermal_layer",
-          "inflation_layer",
-        ]
-      thermal_layer:
-        plugin: "thermocator/ThermalLayer"
-        cold_threshold: 25.0
-        hot_threshold: 60.0
-        lethal_threshold: 75.0
-        thermal_map_topic: "/thermal_map"
+        ["static_layer", "obstacle_layer", "voxel_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
@@ -235,9 +212,7 @@ global_costmap:
           obstacle_min_range: 0.0
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
-        # transient_local QoS: latches onto the last published /map message.
-        # slam_toolbox publishes with this QoS, so this will correctly
-        # subscribe to the SLAM-built map rather than a static file.
+        # transient_local matches slam_toolbox's /map publisher QoS
         map_subscribe_transient_local: true
         transform_tolerance: 0.1
       inflation_layer:
@@ -246,9 +221,8 @@ global_costmap:
         cost_scaling_factor: 5.0
       always_send_full_costmap: true
 
-# map_server is intentionally REMOVED.
-# slam_toolbox is the sole publisher of /map in this configuration.
-# To save the finished map, use map_saver_cli manually:
+# map_server intentionally removed -- slam_toolbox is the sole /map publisher
+# To save the finished map when done:
 #   ros2 run nav2_map_server map_saver_cli -f <your_map_name>
 
 map_saver:
@@ -266,9 +240,8 @@ planner_server:
       plugin: "nav2_navfn_planner::NavfnPlanner"
       tolerance: 0.5
       use_astar: false
-      # allow_unknown: true is critical during mapping.
-      # Without this the planner refuses to generate paths into
-      # unexplored space, making exploration impossible.
+      # Critical during mapping -- without this the planner refuses to
+      # generate paths into unexplored space
       allow_unknown: true
 
 behavior_server:
@@ -358,42 +331,8 @@ collision_monitor:
       time_before_collision: 2.0
       simulation_time_step: 0.02
       min_points: 6
-      visualize: False
+      visualize: false
       enabled: true
-    VelocityPolygonStop:
-      type: "velocity_polygon"
-      action_type: "stop"
-      min_points: 6
-      visualize: true
-      enabled: False
-      polygon_pub_topic: "velocity_polygon_stop"
-      velocity_polygons:
-        ["rotation", "translation_forward", "translation_backward", "stopped"]
-      holonomic: false
-      rotation:
-        points: "[[0.3, 0.3], [0.3, -0.3], [-0.3, -0.3], [-0.3, 0.3]]"
-        linear_min: 0.0
-        linear_max: 0.05
-        theta_min: -1.0
-        theta_max: 1.0
-      translation_forward:
-        points: "[[0.35, 0.3], [0.35, -0.3], [-0.2, -0.3], [-0.2, 0.3]]"
-        linear_min: 0.0
-        linear_max: 1.0
-        theta_min: -1.0
-        theta_max: 1.0
-      translation_backward:
-        points: "[[0.2, 0.3], [0.2, -0.3], [-0.35, -0.3], [-0.35, 0.3]]"
-        linear_min: -1.0
-        linear_max: 0.0
-        theta_min: -1.0
-        theta_max: 1.0
-      stopped:
-        points: "[[0.25, 0.25], [0.25, -0.25], [-0.25, -0.25], [-0.25, 0.25]]"
-        linear_min: -1.0
-        linear_max: 1.0
-        theta_min: -1.0
-        theta_max: 1.0
     observation_sources: ["scan"]
     scan:
       source_timeout: 0.2

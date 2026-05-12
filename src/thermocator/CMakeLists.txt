@@ -85,25 +85,6 @@ add_executable(sync_monitor
 ament_target_dependencies(sync_monitor ${THERMOCATOR_DEPS})
 target_compile_features(sync_monitor PUBLIC cxx_std_17)
 
-add_library(thermocator_layer SHARED
-    src/thermal_layer.cpp
-    include/thermocator/thermal_layer.hpp
-)
-ament_target_dependencies(thermocator_layer
-    ${THERMOCATOR_DEPS}
-    nav2_costmap_2d
-    pluginlib
-)
-target_include_directories(thermocator_layer PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
-)
-target_compile_features(thermocator_layer PUBLIC cxx_std_17)
-
-pluginlib_export_plugin_description_file(
-    nav2_costmap_2d plugin_description.xml
-)
-
 add_library(thermocator_display SHARED
   src/thermal_display.cpp
   include/thermocator/thermal_display.hpp
@@ -137,7 +118,6 @@ pluginlib_export_plugin_description_file(
 install(TARGETS
   thermocator
   thermocator_display
-  thermocator_layer
   thermal_broadcaster
   decision_node
   dt_mediator

@@ -15,6 +15,7 @@ class ThermalGrid final {
 
     void Initialize(const nav_msgs::msg::OccupancyGrid &map);
     void Update(double world_x, double world_y, double temperature);
+    void Resize(const nav_msgs::msg::MapMetaData &new_info);
 
     std::vector<int8_t> ToOccupancyData(double cold_thresh, double hot_thresh, float min_conf = 0.0f) const;
 
@@ -22,6 +23,9 @@ class ThermalGrid final {
     std::optional<float> GetConfidenceAt(double world_x, double world_y) const;
     bool IsVisited(double world_x, double world_y);
     const nav_msgs::msg::MapMetaData &getInfo() const { return _info; }
+
+    bool HasHeatData(double min_temperature) const;
+    std::pair<double, double> GetHottestCell() const;
 
   private:
     std::optional<std::pair<int, int>> WorldToGrid(double x, double y) const;

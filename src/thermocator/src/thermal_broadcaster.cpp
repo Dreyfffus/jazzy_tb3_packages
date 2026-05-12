@@ -20,12 +20,12 @@ class ThermalBroadcaster : public rclcpp::Node {
   public:
     explicit ThermalBroadcaster()
         : Node("thermal_broadcaster"), _rng(std::random_device{}()) {
-        declare_parameter("zone_centers_x", std::vector<double>{2.0, -1.0});
-        declare_parameter("zone_centers_y", std::vector<double>{2.0, 1.0});
-        declare_parameter("zone_peak_temps", std::vector<double>{80.0, 60.0});
-        declare_parameter("zone_sigmas", std::vector<double>{0.5, 0.3});
+        declare_parameter("zone_centers_x", std::vector<double>{0.0});
+        declare_parameter("zone_centers_y", std::vector<double>{0.0});
+        declare_parameter("zone_peak_temps", std::vector<double>{80.0});
+        declare_parameter("zone_sigmas", std::vector<double>{0.5});
         declare_parameter("noise_stdev", 0.5);
-        declare_parameter("publish_rate", 5.0);
+        declare_parameter("publish_rate", 2.5);
         declare_parameter("map_frame", std::string("map"));
         declare_parameter("robot_frame", std::string("base_footprint"));
         set_parameter(rclcpp::Parameter("use_sim_time", true));

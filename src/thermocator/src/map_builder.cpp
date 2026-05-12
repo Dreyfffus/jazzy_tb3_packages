@@ -1,5 +1,6 @@
 
 #include "thermocator/map_builder.hpp"
+#include "nav_msgs/msg/occupancy_grid.hpp"
 namespace thermocator {
 void ThermalMapBuilder::ThermalCallback(const sensor_msgs::msg::Temperature::SharedPtr msg) {
     if (!_grid->IsInitialized())
@@ -10,7 +11,7 @@ void ThermalMapBuilder::ThermalCallback(const sensor_msgs::msg::Temperature::Sha
         transform = _tf_buffer->lookupTransform(
             _map_frame,
             _robot_frame,
-            msg->header.stamp,
+            rclcpp::Time(0),
             rclcpp::Duration::from_seconds(_tf_timeout));
     } catch (const tf2::TransformException &e) {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
@@ -24,6 +25,31 @@ void ThermalMapBuilder::ThermalCallback(const sensor_msgs::msg::Temperature::Sha
     {
         std::lock_guard<std::mutex> lock(_grid_mutex);
         _grid->Update(x, y, msg->temperature);
+    }
+}
+
+void ThermalMapBuilder::MapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+    std::lock_guard<std::mutex> lock(_grid_mutex);
+
+    if (!_grid->IsInitialized()) {
+        _grid->Initialize(*msg);
+        return;
+    }
+
+    const auto &new_info = msg->info;
+    const auto &old_info = _grid->getInfo();
+
+    // Compare in cell space — ignore sub-cell float drift
+    const double res = new_info.resolution;
+    const double dx = std::abs(new_info.origin.position.x - old_info.origin.position.x);
+    const double dy = std::abs(new_info.origin.position.y - old_info.origin.position.y);
+
+    const bool origin_shifted = (dx > res * 0.5) || (dy > res * 0.5);
+    const bool dims_changed = new_info.width != old_info.width ||
+                              new_info.height != old_info.height;
+
+    if (origin_shifted || dims_changed) {
+        _grid->Resize(new_info);
     }
 }
 

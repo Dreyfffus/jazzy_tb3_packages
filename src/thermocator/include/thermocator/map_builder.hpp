@@ -12,6 +12,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.hpp>
 
+#include "nav_msgs/msg/occupancy_grid.hpp"
 #include "thermocator/thermal_grid.hpp"
 
 namespace thermocator {
@@ -44,9 +45,15 @@ class ThermalMapBuilder : public rclcpp::Node {
         pub_qos.transient_local();
         pub_qos.reliable();
 
+        rclcpp::QoS map_qos(1);
+        map_qos.transient_local();
+        map_qos.reliable();
+
         _publisher = create_publisher<nav_msgs::msg::OccupancyGrid>("/thermal_map", pub_qos);
         _thermal_sub = create_subscription<sensor_msgs::msg::Temperature>("/thermal_reading", rclcpp::QoS(10),
                                                                           std::bind(&ThermalMapBuilder::ThermalCallback, this, std::placeholders::_1));
+        _ogrid_sub = create_subscription<nav_msgs::msg::OccupancyGrid>("/map", map_qos, std::bind(&ThermalMapBuilder::MapCallback, this, std::placeholders::_1));
+
         const double rate = get_parameter("publish_rate").as_double();
         const auto period = std::chrono::duration<double>(1.0 / rate);
 
@@ -60,6 +67,7 @@ class ThermalMapBuilder : public rclcpp::Node {
   private:
     void ThermalCallback(const sensor_msgs::msg::Temperature::SharedPtr msg);
     void PublishCallback();
+    void MapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
 
     std::shared_ptr<ThermalGrid> _grid;
     std::mutex _grid_mutex;
@@ -69,6 +77,7 @@ class ThermalMapBuilder : public rclcpp::Node {
 
     rclcpp::Subscription<sensor_msgs::msg::Temperature>::SharedPtr _thermal_sub;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr _publisher;
+    rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr _ogrid_sub;
     rclcpp::TimerBase::SharedPtr _timer;
 
     std::string _map_frame;
