@@ -9,7 +9,6 @@ SETUP="source /opt/ros/jazzy/setup.bash && \
        source /ws/install/setup.bash && \
        export TURTLEBOT3_MODEL=burger"
 
-# ── Helper — ensure container is running before exec ─────────────────────────
 ensure_container() {
     if ! docker ps --format '{{.Names}}' | grep -q "^turtlebot3_container$"; then
         echo "Container not running — starting it in the background ..."
@@ -29,6 +28,17 @@ ensure_container() {
 
 if [ -z "$attach" ]; then
     echo "Usage: $0 <start | attach | remote> [service] [package]"
+    echo ""
+    echo "Services:"
+    echo "  teleop       — keyboard teleoperation"
+    echo "  rviz         — Cartographer SLAM + RViz2"
+    echo "  lifecycle    — Lifecycle manager for Nav2 node management"
+    echo "  nav          — Nav2 with thermal costmap params"
+    echo "  thermal      — ThermalMapBuilder node"
+    echo "  broadcaster  — ThermalBroadcaster (sim sensor)"
+    echo "  decision     — DecisionNode (frontier exploration)"
+    echo "  launch       — Full thermocator pipeline"
+    echo "  build        — Build workspace (optional: [package])"
     exit 1
 fi
 
@@ -73,12 +83,14 @@ case "$attach" in
                      ros2 launch my_tb3_world new_world.launch.py"
                 ;;
 
-            slam)
+            lifecycle)
                 docker exec -it turtlebot3_container bash -c \
                     "${SETUP} && \
-                     ros2 launch slam_toolbox online_async_launch.py \
-                     use_sim_time:=True \
-                     params_file:=/ws/src/thermocator/config/slam_params.yaml"
+                     ros2 run nav2_lifecycle_manager lifecycle_manager \
+                     --ros-args \
+                     -p use_sim_time:=false \
+                     -p autostart:=true \
+                     -p node_names:='[\"controller_server\",\"smoother_server\",\"planner_server\",\"behavior_server\",\"velocity_smoother\",\"collision_monitor\",\"bt_navigator\",\"waypoint_follower\"]'"
                 ;;
 
             nav)
@@ -138,7 +150,7 @@ case "$attach" in
             *)
                 echo "Error: unknown service '$service'"
                 echo "Available services:"
-                echo "  teleop | rviz | sim | slam | nav | thermal | broadcaster | build"
+                echo "  teleop | rviz | sim | nav | thermal | broadcaster | build"
                 exit 1
                 ;;
         esac

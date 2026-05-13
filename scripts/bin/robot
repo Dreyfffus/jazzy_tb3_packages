@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-WS_ROOT=$(dirname "$SCRIPT_DIR")
+WS_ROOT=$(dirname "$(dirname "$SCRIPT_DIR")")
 CONFIG_DIR="${WS_ROOT}/src/thermocator/config"
 
 
 service="${1:-}"
-domain_id="${2:-30}"
+domain_id="${2:-38}"
 package="${3:-}"
 
 SETUP="source /opt/ros/jazzy/setup.bash && \
@@ -20,18 +20,20 @@ if [ -z "$service" ]; then
     echo "Services:"
     echo "  teleop       — keyboard teleoperation"
     echo "  rviz         — Cartographer SLAM + RViz2"
+    echo "  lifecycle    — Lifecycle manager for Nav2 node management"
     echo "  nav          — Nav2 with thermal costmap params"
     echo "  thermal      — ThermalMapBuilder node"
     echo "  broadcaster  — ThermalBroadcaster (sim sensor)"
     echo "  decision     — DecisionNode (frontier exploration)"
-    echo "  launch       — Full thermocator pipeline"
+    echo "  thermocator  — Full thermocator pipeline"
+    echo "  thermulator  — Entire Thermocator + External stack"
     echo "  map_save     — Save current map to config folder"
     echo "  build        — Build workspace (optional: [package])"
     echo ""
     echo "Resolved Paths:"
     echo "  Workspace Dir : ${WS_ROOT}"
     echo "  Config Dir    : ${CONFIG_DIR}"
-    echo "domain_id defaults to 30 if not specified"
+    echo "domain_id defaults to 38 if not specified"
     exit 1
 fi
 
@@ -40,7 +42,7 @@ case "$service" in
         bash -c "${SETUP} && \
                  ros2 run turtlebot3_teleop teleop_keyboard"
         ;;
-
+ 
     rviz)
         bash -c "${SETUP} && \
                  ros2 launch turtlebot3_cartographer cartographer.launch.py"
@@ -52,6 +54,15 @@ case "$service" in
                  use_sim_time:=False \
                  autostart:=False \
                  params_file:=${CONFIG_DIR}/nav2_slam_params.yaml"
+        ;;
+
+    lifecycle)
+        bash -c "${SETUP} && \
+                ros2 run nav2_lifecycle_manager lifecycle_manager \
+                --ros-args \
+                -p use_sim_time:=false \
+                -p autostart:=true \
+                -p node_names:='[\"controller_server\",\"smoother_server\",\"planner_server\",\"behavior_server\",\"velocity_smoother\",\"collision_monitor\",\"bt_navigator\",\"waypoint_follower\"]'"
         ;;
 
     thermal)
@@ -69,9 +80,15 @@ case "$service" in
                  ros2 run thermocator decision_node"
         ;;
 
-    launch)
+    thermocator)
         bash -c "${SETUP} && \
                  ros2 launch thermocator thermocator.launch.py \
+                 use_sim_time:=false"
+        ;;
+
+    thermulator)
+        bash -c "${SETUP} && \
+                 ros2 launch thermocator thermulator.launch.py \
                  use_sim_time:=false"
         ;;
 
