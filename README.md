@@ -142,7 +142,8 @@ ros2 run turtlebot3_teleop teleop_keyboard
 
 #### Docker
 
-> [!IMPORTANT] The docker setup has to have an opened container.
+>[!IMPORTANT] 
+> The docker setup has to have an opened container.
 > Thus, the first step is opening one and exporting everything.
 
 >**Terminal 1** — Start the container _(once)_
@@ -164,7 +165,8 @@ docker run --rm -it \
 For all following terminals, each command is run **from the host** via `docker exec`:
 
 ---
->[!WARNING] Unfortunately, the way you run these files manually is by remotely attaching to the session
+>[!WARNING] 
+> Unfortunately, the way you run these files manually is by remotely attaching to the session
 > and running the scripts using `docker exec`. This means that unless you place the setup for every command
 > inside `.bashrc` you will have to run everything like its seen below.
 
@@ -293,7 +295,8 @@ ros2 launch thermocator thermocator.launch.py \
   control_rate:=1.0             # How often the decision node runs its control loop (Hz)
 ```
 
-> [!IMPORTANT] the launch files both expose `use_sim_time`.
+>[!IMPORTANT] 
+> The launch files both expose `use_sim_time`.
 > For the Turtlebot3 -- Linux setup this must be set to false, as there is no simulation clock.
 > Aversely, for the Docker setup `use_sim_time` must be set to true explicitly for the packages 
 > to work properly.
