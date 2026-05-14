@@ -272,7 +272,7 @@ These describe the exact running sequence of every node. Two of these are provid
 # Running the package before the setup is fine, all nodes freeze until topics exist and publish.
 ros2 launch thermocator thermocator.launch.py 
 
-# Launches full stack
+# Example stack with some options
 ros2 launch thermocator thermocator.launch.py \
   use_sim_time:=true \          # Use Gazebo clock instead of wall clock
   map_frame:=map \              # TF frame name for the map
@@ -287,12 +287,9 @@ ros2 launch thermocator thermocator.launch.py \
   publish_rate:=1.0 \          # How often the thermal map is published (Hz)
   heat_detection_threshold:=20.0 \ # Occupancy value above which a cell is considered hot (0–100)
   scoring_radius:=1.5 \        # Radius around each frontier candidate used for heat scoring (meters)
-  w_unknown_hot:=3.0 \         # Weight bonus for unknown cells adjacent to hot cells
-  w_dist_hottest:=0.5 \        # Penalty weight for being far from the hottest known cell
-  w_cold_penalty:=0.2 \        # Penalty weight for confirmed cold cells within scoring radius
-  frontier_min_distance:=0.8 \ # Minimum distance frontier -> robot to be considered (meters)
   investigation_duration:=5.0 \ # Seconds the robot waits at a goal before rescanning
   control_rate:=1.0             # How often the decision node runs its control loop (Hz)
+  params_file:=/path/to/file.yaml # Params file to be loaded``
 ```
 
 >[!IMPORTANT] 
@@ -300,6 +297,63 @@ ros2 launch thermocator thermocator.launch.py \
 > For the Turtlebot3 -- Linux setup this must be set to false, as there is no simulation clock.
 > Aversely, for the Docker setup `use_sim_time` must be set to true explicitly for the packages 
 > to work properly.
+
+---
+
+Also to help with parametrization you also have the option of using **`thermal_params.yaml`**. This file is found
+in the config folder of the package. This file contains the entire parametrization of the funtion segregated by package.
+> An example file looks like :
+
+```yaml
+
+# Entire parameter stack present in this file.
+
+thermal_broadcaster:
+  ros__parameters:
+    map_frame: "map"
+    robot_frame: "base_footprint"
+    publish_rate: 2.5
+    noise_stdev: 0.5
+    # Heat zone definitions -- all arrays must be the same length
+    # Coordinates are in map frame (meters)
+    zone_centers_x: [0.2, 1.6]
+    zone_centers_y: [2.2, 2.3]
+    zone_peak_temps: [80.0, 60.0]
+    zone_sigmas: [1.2, 1.2]
+
+thermal_map_builder:
+  ros__parameters:
+    map_frame: "map"
+    robot_frame: "base_footprint"
+    # Temperature range mapped to occupancy values 0-100
+    cold_threshold: 0.0
+    hot_threshold: 80.0
+    min_confidence: 0.5
+    publish_rate: 1.0
+    tf_timeout: 0.1
+
+decision_node:
+  ros__parameters:
+    map_frame: "map"
+    robot_frame: "base_footprint"
+    heat_detection_threshold: 20.0
+    frontier_min_distance: 0.8
+    scoring_radius: 2.0
+    max_frontier_distance: 3.0
+    w_boundary: 1.0
+    w_thermal_boundary: 3.0
+    w_hot_interior: 0.5
+    w_cold_interior: 2.5
+    revisit_penalty_radius: 1.8
+    max_visited_goals: 12
+    investigation_duration: 5.0
+    control_rate: 1.0
+```
+>[!IMPORTANT] 
+> Parameters not present in the params file are defaulted to their hardoced value.
+> But passing args when running this function overrides the use of params files and treats all 
+> ***Unspecified Command Line Args*** as default arguments. The only exception to this is `use_sim_time`
+> for purposes of seamless transition, and `params_file` for obvious reasons.
 
 ### Scripts 
 
