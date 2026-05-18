@@ -81,9 +81,6 @@ def generate_launch_description():
         [
             use_sim_time_arg,
             tolerance_arg,
-            thermal_broadcaster,
-            thermocator,
-            decision_node,
             dt_mediator,
             sync_monitor,
         ]

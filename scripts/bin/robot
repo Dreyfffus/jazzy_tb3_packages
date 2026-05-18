@@ -29,11 +29,13 @@ if [ -z "$service" ]; then
     echo "  thermulator  — Entire Thermocator + External stack"
     echo "  map_save     — Save current map to config folder"
     echo "  build        — Build workspace (optional: [package])"
+    echo "  sim          — Gazebo Simulation Connection and Sync"
     echo ""
     echo "Resolved Paths:"
     echo "  Workspace Dir : ${WS_ROOT}"
     echo "  Config Dir    : ${CONFIG_DIR}"
     echo "domain_id defaults to 38 if not specified"
+    echo ""
     exit 1
 fi
 
@@ -91,6 +93,12 @@ case "$service" in
                  ros2 launch thermocator thermulator.launch.py \
                  use_sim_time:=false"
         ;;
+
+    sim)
+        bash -c "${SETUP} && \
+                 ros2 launch my_tb3_world sim_with_bridge.launch.py \
+                 use_sim_time:=false \
+                 sync_tolerance_seconds:=0.5"
 
     map_save)
         bash -c "${SETUP} && \
