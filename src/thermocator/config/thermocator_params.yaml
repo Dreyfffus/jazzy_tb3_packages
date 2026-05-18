@@ -12,8 +12,8 @@ thermal_broadcaster:
     noise_stdev: 0.5
     # Heat zone definitions -- all arrays must be the same length
     # Coordinates are in map frame (meters)
-    zone_centers_x: [0.2, 1.6]
-    zone_centers_y: [2.2, 2.3]
+    zone_centers_x: [0.2, 0.6]
+    zone_centers_y: [0.0, -1.0]
     zone_peak_temps: [80.0, 60.0]
     zone_sigmas: [1.2, 1.2]
 
