@@ -99,6 +99,7 @@ case "$service" in
                  ros2 launch my_tb3_world sim_with_bridge.launch.py \
                  use_sim_time:=false \
                  sync_tolerance_seconds:=0.5"
+        ;;
 
     map_save)
         bash -c "${SETUP} && \
