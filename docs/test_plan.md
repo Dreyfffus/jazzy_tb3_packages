@@ -1,5 +1,117 @@
 # Test Plan
 
+## DT integration / rosbridge quick procedure
+
+Use this section when you specifically want to test the digital twin bridge path end to end.
+
+### Launch sequence
+
+Open separate terminals after building the workspace and sourcing the ROS environment.
+
+Terminal 1:
+
+```bash
+ros2 launch my_tb3_world sim_with_bridge.launch.py use_sim_time:=true
+```
+
+Terminal 2:
+
+```bash
+ros2 launch thermocator dt_integration.launch.py use_sim_time:=true sync_tolerance_seconds:=0.5
+```
+
+Optional Terminal 3 if Nav2 is part of the scenario:
+
+```bash
+ros2 launch turtlebot3_navigation2 navigation2.launch.py \
+  use_sim_time:=true \
+  params_file:=/ws/src/thermocator/config/nav2_thermal_params.yaml
+```
+
+### What to verify
+
+1. Gazebo is bridged into ROS 2.
+
+```bash
+ros2 topic echo /clock --once
+ros2 topic echo /odom --once
+ros2 topic echo /scan --once
+```
+
+Pass condition:
+
+- `/clock` publishes.
+- `/odom` and `/scan` are visible in ROS 2 while Gazebo is running.
+
+2. DT mirror topics exist and receive data.
+
+```bash
+ros2 topic list | grep /dt
+ros2 topic echo /dt/odom --once
+ros2 topic echo /dt/scan --once
+ros2 topic echo /dt/thermal_reading --once
+ros2 topic echo /dt/thermal_map --once
+```
+
+Pass condition:
+
+- `/dt/odom`, `/dt/scan`, `/dt/map`, `/dt/thermal_map`, `/dt/thermal_reading`, and `/dt/cmd_vel` exist.
+- Mirrored topics receive messages when the source topics are active.
+
+3. DT command forwarding works.
+
+First watch `/cmd_vel`:
+
+```bash
+ros2 topic echo /cmd_vel --once
+```
+
+Then publish from the DT side:
+
+```bash
+ros2 topic pub --once /dt/cmd_vel geometry_msgs/msg/Twist \
+  "{linear: {x: 0.05}, angular: {z: 0.0}}"
+```
+
+Pass condition:
+
+- `dt_mediator` forwards the command to `/cmd_vel`.
+- `/cmd_vel` receives a `geometry_msgs/msg/TwistStamped` message.
+- The TurtleBot3 moves in Gazebo.
+
+4. Sync health looks normal.
+
+Watch the `dt_integration.launch.py` terminal for lines like:
+
+```text
+Sync ok [odom]
+Sync ok [scan]
+Sync ok [thermal_map]
+```
+
+Pass condition:
+
+- Active mirrored streams report `Sync ok`.
+- No repeated `Sync warning` appears during normal runtime.
+
+### Minimal smoke test
+
+If time is short, these three checks are enough:
+
+1. Launch `sim_with_bridge.launch.py` and confirm `/clock` is publishing.
+2. Launch `dt_integration.launch.py` and confirm `/dt/odom` exists.
+3. Publish once to `/dt/cmd_vel` and confirm the robot moves in Gazebo.
+
+If those pass, the full bridge chain is working:
+
+DT command
+-> `dt_mediator`
+-> ROS `/cmd_vel`
+-> `ros_gz_bridge`
+-> Gazebo motion
+-> ROS sensor feedback
+-> `/dt/*` mirror topics
+
 ## 1. Setup and familiarization
 
 - Objective: verify the workspace builds and ROS environment is sourced.
